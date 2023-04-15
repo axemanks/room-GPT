@@ -3,11 +3,14 @@ import { getServerSession } from "next-auth/next";
 import { authOptions } from "./auth/[...nextauth]";
 import prisma from "../../lib/prismadb";
 
+
 export type GenerateResponseData = {
   original: string | null;
   generated: string | null;
   id: string;
 };
+
+
 
 interface ExtendedNextApiRequest extends NextApiRequest {
   body: {
@@ -54,6 +57,7 @@ export default async function handler(
     },
   });
 
+ 
   try {
     const { imageUrl, theme, room } = req.body;
     const prompt =
@@ -61,7 +65,7 @@ export default async function handler(
         ? "a video gaming room"
         : `a ${theme.toLowerCase()} ${room.toLowerCase()}`;
 
-    // POST request to Replicate to start the image restoration generation process
+    // POST request to Replicate to start the image generation process
     let startResponse = await fetch(
       "https://api.replicate.com/v1/predictions",
       {
@@ -73,6 +77,7 @@ export default async function handler(
         body: JSON.stringify({
           version:
             "854e8727697a057c525cdb45ab037f64ecca770a1769cc52287c2e56472a247b",
+         
           input: {
             image: imageUrl,
             prompt: prompt,
@@ -85,6 +90,8 @@ export default async function handler(
         }),
       }
     );
+
+    
 
     let jsonStartResponse = await startResponse.json();
 
@@ -110,7 +117,7 @@ export default async function handler(
       } else if (jsonFinalResponse.status === "failed") {
         break;
       } else {
-        await new Promise((resolve) => setTimeout(resolve, 1000));
+        await new Promise((resolve) => setTimeout(resolve, 2000));
       }
     }
 
@@ -129,7 +136,7 @@ export default async function handler(
         },
       });
     } else {
-      throw new Error("Failed to restore image");
+      throw new Error("Failed to generate image");
     }
 
     res.status(200).json(
@@ -139,7 +146,7 @@ export default async function handler(
             generated: generatedImage,
             id: roomId,
           }
-        : "Failed to restore image"
+        : "Failed to generate image"
     );
   } catch (error) {
     // Increment their credit if something went wrong
@@ -154,6 +161,6 @@ export default async function handler(
       },
     });
     console.error(error);
-    res.status(500).json("Failed to restore image");
+    res.status(500).json("Failed to generate image");
   }
 }
